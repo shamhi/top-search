@@ -9,9 +9,13 @@ JetStream, агрегирует поминутные счётчики в Redis Z
 ### Быстрый старт
 
 ```bash
-task dev         # установка инструментов + генерация proto + docker compose up -d
+# Копируем example-конфиги (пропускается, если уже есть config.local.yaml и .env)
+cp config/config.example.yaml config/config.local.yaml
+cp config/.env.example config/.env
+
+make dev         # установка инструментов + генерация proto + docker compose up -d
 # или
-make dev
+task dev
 ```
 
 Стек: сервер (Go) + NATS JetStream + Redis.
@@ -23,6 +27,22 @@ make dev
 | NATS            | 4222  | JetStream (клиентский порт)                      |
 | NATS monitoring | 8222  | HTTP-мониторинг (varz, jsz, connz)               |
 | Redis           | 6379  | Ранжирование, кеш топа, stop-слова, дедупликация |
+
+### Конфигурация
+
+Приложение использует `spf13/viper`. Порядок разрешения значений (позднее переопределяет раннее):
+
+```
+1. defaults в коде (config/config.go: setDefaults())
+2. config/config.yaml
+3. config/config.local.yaml   (gitignored, копия config.example.yaml)
+4. env vars (OS environment)  → viper.AutomaticEnv()   (ключи с "." и "-" заменяются на "_" → grpc.port = GRPC_PORT)
+```
+
+Внутри Docker-контейнера env vars поступают из `env_file: config/.env` (docker-compose). Локально (без Docker) можно
+установить их вручную или положиться на YAML-файлы.
+
+Сервис работоспособен без конфигурационных файлов — все параметры имеют значения по умолчанию в `setDefaults()`.
 
 ### Продьюсер тестовых данных
 
