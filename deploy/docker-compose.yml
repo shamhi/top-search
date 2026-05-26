@@ -144,6 +144,8 @@ services:
       GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
       GF_AUTH_DISABLE_LOGIN_FORM: "true"
       GF_SECURITY_ALLOW_EMBEDDING: "true"
+      GF_PLUGINS_PLUGIN_ADMIN_ENABLED: "false"
+      GF_LOG_LEVEL: info
 
     volumes:
       - ./grafana/datasources/datasource.yml:/etc/grafana/provisioning/datasources/datasource.yml:ro

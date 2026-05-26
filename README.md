@@ -293,10 +293,7 @@ Grafana: анонимный доступ (без логина), предзагр
 dedup/stopword blocks, cache hits/misses, Go runtime). Prometheus автоматически собирает метрики из сервиса (
 `server:2112`) и NATS exporter (`nats-exporter:7777`) каждые 5 секунд.
 
-Импорт дополнительных prebuilt-дашбордов в Grafana (Dashboard → Import):
-
-- **Go Runtime:** ID `10826`
-- **Redis:** ID `763`
+![img.png](docs/grafana.png)
 
 ## Разработка
 
