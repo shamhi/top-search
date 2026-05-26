@@ -80,7 +80,7 @@ func (s *TrendService) Ingest(ctx context.Context, event domain.SearchQueryEvent
 	}
 
 	s.stopWordsMu.RLock()
-	_, blocked := s.stopWords[query]
+	blocked := s.matchesStopWord(query)
 	s.stopWordsMu.RUnlock()
 	if blocked {
 		StopwordBlocks.Inc()
@@ -161,7 +161,7 @@ func (s *TrendService) GetTop(ctx context.Context, limit int) ([]domain.Trending
 	s.stopWordsMu.RLock()
 	filtered := make([]domain.TrendingQuery, 0, limit)
 	for _, e := range cached {
-		if _, blocked := s.stopWords[e.Query]; blocked {
+		if s.matchesStopWord(e.Query) {
 			continue
 		}
 		filtered = append(filtered, e)
@@ -355,6 +355,20 @@ func (s *TrendService) refreshTop(ctx context.Context) ([]domain.TrendingQuery, 
 	}
 
 	return entries, nil
+}
+
+func (s *TrendService) matchesStopWord(query string) bool {
+	if _, ok := s.stopWords[query]; ok {
+		return true
+	}
+
+	for _, token := range strings.Fields(query) {
+		if _, ok := s.stopWords[token]; ok {
+			return true
+		}
+	}
+
+	return false
 }
 
 func normalizeQuery(q string) string {
