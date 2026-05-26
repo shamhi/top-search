@@ -20,7 +20,7 @@ services:
       nats:
         condition: service_healthy
       redis:
-        condition: service_started
+        condition: service_healthy
 
     volumes:
       - ../config:/config:ro
