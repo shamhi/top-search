@@ -283,15 +283,18 @@ task monitor-down
 make monitor-down
 ```
 
-| Сервис         | Порт       | URL                                |
-|----------------|-----------|------------------------------------|
-| **Grafana**    | 3000      | http://localhost:3000              |
-| **Prometheus** | 9090      | http://localhost:9090              |
-| NATS Exporter  | 7777      | http://localhost:7777/metrics      |
+| Сервис         | Порт | URL                           |
+|----------------|------|-------------------------------|
+| **Grafana**    | 3000 | http://localhost:3000         |
+| **Prometheus** | 9090 | http://localhost:9090         |
+| NATS Exporter  | 7777 | http://localhost:7777/metrics |
 
-Grafana: анонимный доступ (без логина), предзагружен дашборд **Top-Search** (gRPC latency, events ingest rate, dedup/stopword blocks, cache hits/misses, Go runtime). Prometheus автоматически собирает метрики из сервиса (`server:2112`) и NATS exporter (`nats-exporter:7777`) каждые 5 секунд.
+Grafana: анонимный доступ (без логина), предзагружен дашборд **Top-Search** (gRPC latency, events ingest rate,
+dedup/stopword blocks, cache hits/misses, Go runtime). Prometheus автоматически собирает метрики из сервиса (
+`server:2112`) и NATS exporter (`nats-exporter:7777`) каждые 5 секунд.
 
 Импорт дополнительных prebuilt-дашбордов в Grafana (Dashboard → Import):
+
 - **Go Runtime:** ID `10826`
 - **Redis:** ID `763`
 
