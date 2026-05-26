@@ -1,0 +1,138 @@
+{
+  "title": "Top-Search",
+  "uid": "topsearch",
+  "panels": [
+    {
+      "title": "gRPC Request Rate",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 8, "x": 0, "y": 0},
+      "targets": [
+        {
+          "expr": "sum(rate(grpc_requests_total{method=~\".*TrendService.*\"}[1m])) by (method)",
+          "legendFormat": "__auto"
+        }
+      ],
+      "fieldConfig": {"defaults": {"unit": "reqps"}}
+    },
+    {
+      "title": "gRPC Latency (P50/P90/P99)",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 8, "x": 8, "y": 0},
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(grpc_request_duration_seconds_bucket{method=~\".*TrendService.*\"}[1m])) by (le))",
+          "legendFormat": "P50"
+        },
+        {
+          "expr": "histogram_quantile(0.90, sum(rate(grpc_request_duration_seconds_bucket{method=~\".*TrendService.*\"}[1m])) by (le))",
+          "legendFormat": "P90"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(grpc_request_duration_seconds_bucket{method=~\".*TrendService.*\"}[1m])) by (le))",
+          "legendFormat": "P99"
+        }
+      ],
+      "fieldConfig": {"defaults": {"unit": "s"}}
+    },
+    {
+      "title": "Events Ingest Rate",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 8, "x": 16, "y": 0},
+      "targets": [
+        {
+          "expr": "rate(trend_events_ingested_total[1m])",
+          "legendFormat": "ingested"
+        }
+      ],
+      "fieldConfig": {"defaults": {"unit": "reqps"}}
+    },
+    {
+      "title": "Dedup & Stopword Blocks",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 8, "x": 0, "y": 8},
+      "targets": [
+        {
+          "expr": "rate(trend_dedup_hits_total[1m])",
+          "legendFormat": "dedup"
+        },
+        {
+          "expr": "rate(trend_stopword_blocks_total[1m])",
+          "legendFormat": "stopword"
+        }
+      ],
+      "fieldConfig": {"defaults": {"unit": "reqps"}}
+    },
+    {
+      "title": "Cache Hits / Misses",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 8, "x": 8, "y": 8},
+      "targets": [
+        {
+          "expr": "rate(trend_cache_hits_total[1m])",
+          "legendFormat": "hits"
+        },
+        {
+          "expr": "rate(trend_cache_misses_total[1m])",
+          "legendFormat": "misses"
+        }
+      ],
+      "fieldConfig": {"defaults": {"unit": "reqps"}}
+    },
+    {
+      "title": "Cached Top Entries & Stopwords Active",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 8, "x": 16, "y": 8},
+      "targets": [
+        {
+          "expr": "trend_cached_top_entries",
+          "legendFormat": "top entries"
+        },
+        {
+          "expr": "trend_stopwords_active",
+          "legendFormat": "stopwords"
+        }
+      ],
+      "fieldConfig": {"defaults": {"unit": "none"}}
+    },
+    {
+      "title": "Go Goroutines",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 8, "x": 0, "y": 16},
+      "targets": [
+        {
+          "expr": "go_goroutines",
+          "legendFormat": "goroutines"
+        }
+      ],
+      "fieldConfig": {"defaults": {"unit": "none"}}
+    },
+    {
+      "title": "Go Heap Alloc (MB)",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 8, "x": 8, "y": 16},
+      "targets": [
+        {
+          "expr": "go_memstats_heap_alloc_bytes / 1024 / 1024",
+          "legendFormat": "heap"
+        }
+      ],
+      "fieldConfig": {"defaults": {"unit": "mbytes"}}
+    },
+    {
+      "title": "Aggregator Ticks",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 8, "x": 16, "y": 16},
+      "targets": [
+        {
+          "expr": "rate(trend_aggregator_ticks_total[1m])",
+          "legendFormat": "ticks/s"
+        }
+      ],
+      "fieldConfig": {"defaults": {"unit": "reqps"}}
+    }
+  ],
+  "refresh": "5s",
+  "schemaVersion": 39,
+  "timepicker": {},
+  "time": {"from": "now-15m", "to": "now"}
+}
