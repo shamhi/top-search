@@ -29,15 +29,6 @@ services:
 
     stop_grace_period: 30s
 
-    deploy:
-      resources:
-        limits:
-          cpus: "2"
-          memory: 512M
-        reservations:
-          cpus: "0.5"
-          memory: 128M
-
     security_opt:
       - no-new-privileges:true
 
