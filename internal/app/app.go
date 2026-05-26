@@ -81,6 +81,10 @@ func (a *App) startComponents(ctx context.Context) error {
 		return fmt.Errorf("start trend service: %w", err)
 	}
 
+	if err := a.provider.SetupBroker(ctx); err != nil {
+		return fmt.Errorf("setup broker: %w", err)
+	}
+
 	if err := a.provider.TrendBroker().Subscribe(ctx, a.provider.TrendService().Ingest); err != nil {
 		return fmt.Errorf("subscribe broker: %w", err)
 	}

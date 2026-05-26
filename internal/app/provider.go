@@ -2,6 +2,8 @@ package app
 
 import (
 	"context"
+	"fmt"
+	"time"
 
 	gonats "github.com/nats-io/nats.go"
 	"go.uber.org/zap"
@@ -56,10 +58,7 @@ func (p *appProvider) Redis() *pkgredis.Client {
 		return p.rdb
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), p.cfg.Redis.ConnectTimeout())
-	defer cancel()
-
-	rd, err := pkgredis.New(ctx, pkgredis.Config{
+	cfg := pkgredis.Config{
 		Addr:         p.cfg.Redis.Addr(),
 		Username:     p.cfg.Redis.Username(),
 		Password:     p.cfg.Redis.Password(),
@@ -69,15 +68,33 @@ func (p *appProvider) Redis() *pkgredis.Client {
 		WriteTimeout: p.cfg.Redis.WriteTimeout(),
 		PoolSize:     p.cfg.Redis.PoolSize(),
 		MinIdleConns: p.cfg.Redis.MinIdleConns(),
-	})
-	if err != nil {
-		p.log.Fatal("redis connect failed", zap.Error(err))
 	}
 
-	p.rdb = rd
-	p.log.Debug("redis connected", zap.String("addr", p.cfg.Redis.Addr()))
+	deadline := time.Now().Add(p.cfg.Redis.ConnectTimeout())
 
-	return rd
+	for {
+		ctx, cancel := context.WithTimeout(context.Background(), p.cfg.Redis.DialTimeout())
+		rd, err := pkgredis.New(ctx, cfg)
+		cancel()
+
+		if err == nil {
+			p.rdb = rd
+			p.log.Debug("redis connected", zap.String("addr", p.cfg.Redis.Addr()))
+
+			return rd
+		}
+
+		if time.Now().After(deadline) {
+			p.log.Fatal("redis connect failed after retries", zap.Error(err))
+		}
+
+		p.log.Warn("redis connect retry",
+			zap.Error(err),
+			zap.Duration("remaining", time.Until(deadline).Round(time.Second)),
+		)
+
+		time.Sleep(time.Second)
+	}
 }
 
 func (p *appProvider) NatsConn() *pkgnats.Conn {
@@ -126,6 +143,31 @@ func (p *appProvider) NatsJS() *pkgnats.JetStream {
 	p.log.Info("jetstream ready")
 
 	return js
+}
+
+func (p *appProvider) SetupBroker(ctx context.Context) error {
+	js := p.NatsJS()
+
+	if err := js.EnsureStream(ctx, p.cfg.Nats.StreamName(), p.cfg.Nats.Subject()); err != nil {
+		return fmt.Errorf("ensure stream: %w", err)
+	}
+
+	if err := js.EnsureConsumer(
+		ctx,
+		p.cfg.Nats.StreamName(),
+		p.cfg.Nats.ConsumerName(),
+		p.cfg.Nats.Subject(),
+	); err != nil {
+		return fmt.Errorf("ensure consumer: %w", err)
+	}
+
+	p.log.Info("broker stream ready",
+		zap.String("stream", p.cfg.Nats.StreamName()),
+		zap.String("consumer", p.cfg.Nats.ConsumerName()),
+		zap.String("subject", p.cfg.Nats.Subject()),
+	)
+
+	return nil
 }
 
 func (p *appProvider) TrendRepository() ports.TrendRepository {
