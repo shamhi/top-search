@@ -1,0 +1,46 @@
+logger:
+  debug: true
+  logs-to-file: false
+  logs-dir: ./logs
+  timezone: Europe/Moscow
+
+grpc:
+  port: 50051
+  connection-timeout: 5s
+  shutdown-timeout: 15s
+  request-timeout: 3s
+  max-connections-age: 5m
+  max-concurrent-streams: 256
+  max-receive-message-size: 4194304 # 4MB
+  max-send-message-size: 4194304    # 4MB
+  keepalive-time: 30s
+  keepalive-timeout: 10s
+
+metrics:
+  enabled: true
+  port: 2112
+  shutdown-timeout: 5s
+
+nats:
+  url: nats://localhost:4222
+  name: top-search
+  connect-timeout: 10s
+  reconnect-wait: 2s
+  max-reconnect: 60
+  retry-on-failed-connect: true
+  stream-name: SEARCH_QUERIES
+  consumer-name: top-search-consumer
+  subject: search.query.created
+
+redis:
+  host: localhost
+  port: 6379
+  username: ""
+  password: ""
+  db: 0
+  connect-timeout: 5s
+  dial-timeout: 3s
+  read-timeout: 2s
+  write-timeout: 2s
+  pool-size: 32
+  min-idle-conns: 8

@@ -1,0 +1,160 @@
+version: "2"
+
+run:
+  timeout: 5m
+  relative-path-mode: gomod
+  issues-exit-code: 1
+  tests: true
+  modules-download-mode: readonly
+  allow-parallel-runners: true
+  go: "1.26"
+
+output:
+  formats:
+    text:
+      print-linter-name: true
+      print-issued-lines: true
+      colors: true
+
+  sort-order:
+    - severity
+    - file
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+  uniq-by-line: true
+  fix: false
+
+linters:
+  default: standard
+
+  enable:
+    - bodyclose
+    - errcheck
+    - errorlint
+    - gocritic
+    - misspell
+    - nilerr
+    - nolintlint
+    - rowserrcheck
+    - sqlclosecheck
+    - staticcheck
+    - unconvert
+    - unused
+    - whitespace
+
+  disable:
+    - contextcheck
+    - noctx
+    - wrapcheck
+    - revive
+    - depguard
+    - exhaustruct
+    - forbidigo
+    - funlen
+    - godox
+    - lll
+    - varnamelen
+    - wsl
+    - gochecknoglobals
+    - gochecknoinits
+
+  settings:
+    errcheck:
+      check-type-assertions: false
+      check-blank: false
+      exclude-functions:
+        - (*database/sql.DB).Close
+        - (io.Closer).Close
+        - (github.com/nats-io/nats.go/jetstream.Msg).Ack
+        - (github.com/nats-io/nats.go/jetstream.Msg).Nak
+
+    gocritic:
+      enabled-tags:
+        - diagnostic
+        - style
+        - performance
+
+      disabled-checks:
+        - hugeParam
+        - rangeValCopy
+        - unnamedResult
+        - regexpSimplify
+        - exitAfterDefer
+
+    govet:
+      enable-all: true
+      disable:
+        - fieldalignment
+
+    misspell:
+      locale: US
+
+    nolintlint:
+      require-specific: true
+      require-explanation: true
+
+    revive:
+      severity: warning
+
+      rules:
+        - name: atomic
+        - name: bare-return
+        - name: blank-imports
+        - name: context-as-argument
+        - name: context-keys-type
+        - name: defer
+        - name: early-return
+        - name: empty-block
+        - name: error-return
+        - name: error-strings
+        - name: error-naming
+        - name: exported
+        - name: if-return
+        - name: increment-decrement
+        - name: indent-error-flow
+        - name: modifies-value-receiver
+        - name: package-comments
+        - name: range
+        - name: receiver-naming
+        - name: redefines-builtin-id
+        - name: superfluous-else
+        - name: time-naming
+        - name: unreachable-code
+        - name: unused-parameter
+        - name: use-any
+
+    staticcheck:
+      checks:
+        - all
+        - '-ST1000'
+        - '-ST1020'
+
+    wrapcheck:
+      ignore-package-globs:
+        - encoding/*
+        - github.com/pkg/errors
+
+severity:
+  default: warning
+
+  rules:
+    - linters:
+        - errcheck
+        - govet
+        - ineffassign
+        - staticcheck
+      severity: error
+
+formatters:
+  enable:
+    - gofumpt
+
+  disable:
+    - gofmt
+    - goimports
+
+  settings:
+    gofumpt:
+      extra-rules: true

@@ -1,0 +1,48 @@
+# Git
+.git/
+.gitignore
+
+# IDE
+.idea/
+.vscode/
+
+# Local development config
+config/config.local.yaml
+config/config.local.yml
+config/.env
+
+# Locally installed tools
+bin/
+
+# Task runner
+Makefile
+Taskfile.yml
+
+# Documentation
+README.md
+
+# Scripts
+scripts/
+
+# Protobuf contracts
+api/trend
+
+# Linter
+.golangci.yml
+.golangci-lint.yml
+
+# CI
+.github/
+
+# Docker compose
+deploy/docker-compose.yml
+
+# SQL analysis / temp files
+tmp/
+temp/
+*.tmp
+*.log
+
+# Coverage
+coverage.out
+coverage.html

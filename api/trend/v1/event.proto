@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package trend.v1;
+
+option go_package = "github.com/shamhi/top-search/api/gen/trend/v1;trendv1";
+
+import "google/protobuf/timestamp.proto";
+
+message SearchEvent {
+  string event_id = 1;
+  string query = 2;
+  google.protobuf.Timestamp created_at = 3;
+  string user_id = 4;
+  string session_id = 5;
+  string device_id = 6;
+  string locale = 7;
+  string platform = 8;
+}

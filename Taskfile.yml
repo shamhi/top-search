@@ -1,0 +1,334 @@
+version: '3'
+
+vars:
+  GO_VERSION: '1.26'
+  GO_MODULE: 'github.com/shamhi/top-search'
+
+  GOLANGCI_LINT_VERSION: 'v2.12.2'
+  GCI_VERSION: 'v0.14.0'
+  GOFUMPT_VERSION: 'v0.10.0'
+  BUF_VERSION: 'v1.69.0'
+
+  BIN_DIR: '{{.ROOT_DIR}}/bin'
+
+  GOLANGCI_LINT: '{{.BIN_DIR}}/golangci-lint'
+  GCI: '{{.BIN_DIR}}/gci'
+  GOFUMPT: '{{.BIN_DIR}}/gofumpt'
+  BUF: '{{.BIN_DIR}}/buf'
+
+  GREEN: '\033[32m'
+  RED: '\033[31m'
+  YELLOW: '\033[33m'
+  BLUE: '\033[34m'
+  CYAN: '\033[36m'
+  BOLD: '\033[1m'
+  RESET: '\033[0m'
+
+  DOCKER_COMPOSE_FILE: 'deploy/docker-compose.yml'
+  DOCKER_ENV_FILE: 'config/.env'
+
+  SERVER_CONTAINER: 'top-search'
+  NATS_CONTAINER: 'nats'
+  REDIS_CONTAINER: 'redis'
+
+tasks:
+  default:
+    desc: "Show available tasks"
+    cmds:
+      - task --list
+
+  # ═══════════════════════════════════════════════
+  # 🛠 TOOLS
+  # ═══════════════════════════════════════════════
+
+  install-tools:
+    desc: "Install development tools into bin/"
+    cmds:
+      - mkdir -p {{.BIN_DIR}}
+
+      - |
+        [ -f {{.GOFUMPT}} ] || {
+          printf '%b' '{{.GREEN}}{{.BOLD}}  ↓{{.RESET}} Installing gofumpt {{.GOFUMPT_VERSION}}...\n'
+          GOBIN={{.BIN_DIR}} go install mvdan.cc/gofumpt@{{.GOFUMPT_VERSION}}
+        }
+
+      - |
+        [ -f {{.GCI}} ] || {
+          printf '%b' '{{.GREEN}}{{.BOLD}}  ↓{{.RESET}} Installing gci {{.GCI_VERSION}}...\n'
+          GOBIN={{.BIN_DIR}} go install github.com/daixiang0/gci@{{.GCI_VERSION}}
+        }
+
+      - |
+        [ -f {{.GOLANGCI_LINT}} ] || {
+          printf '%b' '{{.GREEN}}{{.BOLD}}  ↓{{.RESET}} Installing golangci-lint {{.GOLANGCI_LINT_VERSION}}...\n'
+          GOBIN={{.BIN_DIR}} go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@{{.GOLANGCI_LINT_VERSION}}
+        }
+
+      - |
+        [ -f {{.BUF}} ] || {
+          printf '%b' '{{.GREEN}}{{.BOLD}}  ↓{{.RESET}} Installing buf {{.BUF_VERSION}}...\n'
+          GOBIN={{.BIN_DIR}} go install github.com/bufbuild/buf/cmd/buf@{{.BUF_VERSION}}
+        }
+
+      - printf '%b' '{{.GREEN}}{{.BOLD}}✓{{.RESET}} All tools installed\n'
+
+  # ═══════════════════════════════════════════════
+  # 🎨 FORMAT
+  # ═══════════════════════════════════════════════
+
+  fmt:
+    desc: "Format Go code (gofumpt + gci)"
+    deps:
+      - install-tools
+    cmds:
+      - |
+        printf '%b' '{{.BLUE}}{{.BOLD}}  ♻{{.RESET}} Running gofumpt...\n'
+        find . \
+          -type f \
+          -name '*.go' \
+          ! -path '*/vendor/*' \
+          ! -path '*/gen/*' \
+          ! -path '*/mocks/*' \
+          -exec {{.GOFUMPT}} -extra -w {} +
+        printf '%b' '{{.GREEN}}{{.BOLD}}  ✓{{.RESET}} gofumpt done\n'
+
+      - |
+        printf '%b' '{{.BLUE}}{{.BOLD}}  ♻{{.RESET}} Running gci...\n'
+        find . \
+          -type f \
+          -name '*.go' \
+          ! -path '*/vendor/*' \
+          ! -path '*/gen/*' \
+          ! -path '*/mocks/*' \
+          -exec {{.GCI}} write \
+            -s standard \
+            -s default \
+            -s "Prefix({{.GO_MODULE}})" \
+            {} +
+        printf '%b' '{{.GREEN}}{{.BOLD}}  ✓{{.RESET}} gci done\n'
+
+  lint:
+    desc: "Run golangci-lint"
+    deps:
+      - install-tools
+    cmds:
+      - |
+        printf '%b' '{{.BLUE}}{{.BOLD}}  🔍{{.RESET}} Running golangci-lint...\n'
+        {{.GOLANGCI_LINT}} run --timeout=5m ./...
+        printf '%b' '{{.GREEN}}{{.BOLD}}  ✓{{.RESET}} Lint passed\n'
+
+  lint-fix:
+    desc: "Run golangci-lint with auto-fix"
+    deps:
+      - install-tools
+    cmds:
+      - |
+        printf '%b' '{{.BLUE}}{{.BOLD}}  🔧{{.RESET}} Running golangci-lint --fix...\n'
+        {{.GOLANGCI_LINT}} run --timeout=5m --fix ./...
+        printf '%b' '{{.GREEN}}{{.BOLD}}  ✓{{.RESET}} Lint + fix done\n'
+
+  check:
+    desc: "Run full code validation (fmt + lint)"
+    cmds:
+      - task: fmt
+      - task: lint
+
+  # ═══════════════════════════════════════════════
+  # 🧪 GO DEV
+  # ═══════════════════════════════════════════════
+
+  test:
+    desc: "Run Go tests"
+    cmds:
+      - |
+        printf '%b' '{{.BLUE}}{{.BOLD}}  🧪{{.RESET}} Running tests...\n'
+        go test -race -shuffle=on -count=1 ./...
+        printf '%b' '{{.GREEN}}{{.BOLD}}  ✓{{.RESET}} All tests passed\n'
+
+  test-cover:
+    desc: "Run tests with coverage report"
+    cmds:
+      - |
+        printf '%b' '{{.BLUE}}{{.BOLD}}  📊{{.RESET}} Running tests with coverage...\n'
+        go test -race -coverprofile=coverage.out ./...
+        go tool cover -func=coverage.out
+        go tool cover -html=coverage.out -o coverage.html
+        printf '%b' '{{.GREEN}}{{.BOLD}}  ✓{{.RESET}} Coverage → coverage.html\n'
+
+  vet:
+    desc: "Run go vet"
+    cmds:
+      - |
+        printf '%b' '{{.BLUE}}{{.BOLD}}  🔍{{.RESET}} Running go vet...\n'
+        go vet ./...
+        printf '%b' '{{.GREEN}}{{.BOLD}}  ✓{{.RESET}} Vet passed\n'
+
+  tidy:
+    desc: "Tidy Go modules"
+    cmds:
+      - |
+        printf '%b' '{{.BLUE}}{{.BOLD}}  📦{{.RESET}} Running go mod tidy...\n'
+        go mod tidy
+        printf '%b' '{{.GREEN}}{{.BOLD}}  ✓{{.RESET}} Modules tidied\n'
+
+  build:
+    desc: "Build Go application"
+    cmds:
+      - |
+        printf '%b' '{{.BLUE}}{{.BOLD}}  🔨{{.RESET}} Building...\n'
+        go build -v ./...
+        printf '%b' '{{.GREEN}}{{.BOLD}}  ✓{{.RESET}} Build succeeded\n'
+
+  run:
+    desc: "Run server locally"
+    cmds:
+      - |
+        printf '%b' '{{.GREEN}}{{.BOLD}}  ▶{{.RESET}} Starting server...\n'
+        go run ./cmd/server
+
+  produce:
+    desc: "Highload search query producer"
+    cmds:
+      - go run ./cmd/producer
+
+  produce-load:
+    desc: "Stress test: 10K rps, 8 workers, 30s"
+    cmds:
+      - go run ./cmd/producer -rate 10000 -workers 8 -duration 30s -batch 10
+
+  # ═══════════════════════════════════════════════
+  # 📐 PROTO
+  # ═══════════════════════════════════════════════
+
+  proto:
+    desc: "Generate Go code from proto definitions"
+    deps:
+      - install-tools
+    cmds:
+      - |
+        printf '%b' '{{.BLUE}}{{.BOLD}}  📐{{.RESET}} Generating proto code...\n'
+        {{.BUF}} generate
+        printf '%b' '{{.GREEN}}{{.BOLD}}  ✓{{.RESET}} Proto generated\n'
+
+  # ═══════════════════════════════════════════════
+  # 🐳 DOCKER
+  # ═══════════════════════════════════════════════
+
+  dc-up:
+    desc: "Start all containers in foreground"
+    cmds:
+      - |
+        printf '%b' '{{.GREEN}}{{.BOLD}}  ▶{{.RESET}} Starting containers...\n'
+        docker compose --env-file {{.DOCKER_ENV_FILE}} -f {{.DOCKER_COMPOSE_FILE}} up
+
+  dc-upd:
+    desc: "Start all containers in background"
+    cmds:
+      - |
+        printf '%b' '{{.GREEN}}{{.BOLD}}  ▶{{.RESET}} Starting containers (detached)...\n'
+        docker compose --env-file {{.DOCKER_ENV_FILE}} -f {{.DOCKER_COMPOSE_FILE}} up -d
+
+  dc-down:
+    desc: "Stop and remove containers"
+    cmds:
+      - |
+        printf '%b' '{{.RED}}{{.BOLD}}  ⏹{{.RESET}} Stopping containers...\n'
+        docker compose --env-file {{.DOCKER_ENV_FILE}} -f {{.DOCKER_COMPOSE_FILE}} down
+
+  dc-build:
+    desc: "Build container images"
+    cmds:
+      - |
+        printf '%b' '{{.BLUE}}{{.BOLD}}  🔨{{.RESET}} Building images...\n'
+        docker compose --env-file {{.DOCKER_ENV_FILE}} -f {{.DOCKER_COMPOSE_FILE}} build
+
+  dc-rebuild:
+    desc: "Rebuild from scratch (no cache)"
+    cmds:
+      - |
+        printf '%b' '{{.BLUE}}{{.BOLD}}  🔨{{.RESET}} Rebuilding (--no-cache)...\n'
+        docker compose --env-file {{.DOCKER_ENV_FILE}} -f {{.DOCKER_COMPOSE_FILE}} build --no-cache
+
+  dc-restart:
+    desc: "Restart all containers"
+    cmds:
+      - task: dc-down
+      - task: dc-upd
+
+  dc-restart-server:
+    desc: "Restart server container only"
+    cmds:
+      - |
+        printf '%b' '{{.YELLOW}}{{.BOLD}}  🔄{{.RESET}} Restarting {{.SERVER_CONTAINER}}...\n'
+        docker compose --env-file {{.DOCKER_ENV_FILE}} -f {{.DOCKER_COMPOSE_FILE}} restart {{.SERVER_CONTAINER}}
+
+  dc-status:
+    desc: "Show container status"
+    cmds:
+      - |
+        printf '%b' '{{.CYAN}}{{.BOLD}}  ℹ{{.RESET}} Container status:\n'
+        docker compose --env-file {{.DOCKER_ENV_FILE}} -f {{.DOCKER_COMPOSE_FILE}} ps
+
+  dc-logs:
+    desc: "Show all container logs"
+    cmds:
+      - docker compose --env-file {{.DOCKER_ENV_FILE}} -f {{.DOCKER_COMPOSE_FILE}} logs -f
+
+  dc-logs-server:
+    desc: "Show server container logs"
+    cmds:
+      - docker compose --env-file {{.DOCKER_ENV_FILE}} -f {{.DOCKER_COMPOSE_FILE}} logs -f {{.SERVER_CONTAINER}}
+
+  dc-logs-nats:
+    desc: "Show NATS container logs"
+    cmds:
+      - docker compose --env-file {{.DOCKER_ENV_FILE}} -f {{.DOCKER_COMPOSE_FILE}} logs -f {{.NATS_CONTAINER}}
+
+  dc-logs-redis:
+    desc: "Show Redis container logs"
+    cmds:
+      - docker compose --env-file {{.DOCKER_ENV_FILE}} -f {{.DOCKER_COMPOSE_FILE}} logs -f {{.REDIS_CONTAINER}}
+
+  dc-shell-server:
+    desc: "Open shell in server container"
+    cmds:
+      - docker compose --env-file {{.DOCKER_ENV_FILE}} -f {{.DOCKER_COMPOSE_FILE}} exec {{.SERVER_CONTAINER}} /bin/sh
+
+  dc-stats:
+    desc: "Show container resource usage"
+    cmds:
+      - docker compose --env-file {{.DOCKER_ENV_FILE}} -f {{.DOCKER_COMPOSE_FILE}} stats --no-stream
+
+  dc-clean:
+    desc: "Stop containers and remove volumes"
+    cmds:
+      - |
+        printf '%b' '{{.RED}}{{.BOLD}}  🧹{{.RESET}} Removing containers and volumes...\n'
+        docker compose --env-file {{.DOCKER_ENV_FILE}} -f {{.DOCKER_COMPOSE_FILE}} down -v
+
+  # ═══════════════════════════════════════════════
+  # 🏃 QUICK START
+  # ═══════════════════════════════════════════════
+
+  dev:
+    desc: "Full dev setup: install tools + proto + run infra"
+    cmds:
+      - task: install-tools
+      - task: proto
+      - task: dc-upd
+      - |
+        printf '%b' '{{.GREEN}}{{.BOLD}}  ✓{{.RESET}} Dev environment ready.\n'
+        printf '%s\n' \
+          '  gRPC:   localhost:50051' \
+          '  NATS:   nats://localhost:4222' \
+          '  Redis:  redis://localhost:6379'
+
+  metrics:
+    desc: "Show project metrics"
+    cmds:
+      - |
+        printf '%b' '{{.CYAN}}{{.BOLD}}  📊 Project Metrics{{.RESET}}\n'
+        printf '  Go files:  %s\n' $$(find . -name '*.go' ! -path '*/gen/*' ! -path '*/vendor/*' | wc -l)
+        printf '  Go LOC:    %s\n' $$(find . -name '*.go' ! -path '*/gen/*' ! -path '*/vendor/*' -exec wc -l {} + | tail -1 | awk '{print $$1}')
+        printf '  Packages:  %s\n' $$(go list ./... | wc -l)
+        printf '  Deps:      %s\n' $$(go list -m all | wc -l)

@@ -1,0 +1,95 @@
+# Binaries
+/bin/
+/dist/
+/build/
+
+# Go build artifacts
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+*.coverprofile
+coverage.out
+
+# Go workspace
+go.work
+go.work.sum
+
+# Vendor
+/vendor/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# IDE
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Temporary files
+/tmp/
+/temp/
+
+# Generated files
+/gen/
+/generated/
+/pb/
+
+# Mocks
+/mock/
+/mocks/
+
+# Cache
+.cache/
+
+# Test artifacts
+/testdata/*.tmp
+
+# Profiling
+*.prof
+*.pprof
+
+# Docker
+docker-compose.override.yml
+
+# Task
+.task/
+
+# Local configs
+*.local.yml
+*.local.yaml
+config.local.yml
+config.local.yaml
+
+# SQLite
+*.db
+*.sqlite
+*.sqlite3
+
+# Certificates / keys
+*.pem
+*.key
+*.crt
+
+# JetBrains
+*.iml
+
+# Air
+.air.toml
+
+# Delve debugger
+__debug_bin
+
+# Coverage HTML
+coverage.html

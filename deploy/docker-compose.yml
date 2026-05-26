@@ -1,0 +1,132 @@
+services:
+  server:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+      target: server
+
+    restart: unless-stopped
+
+    env_file:
+      - ../config/.env
+
+    container_name: top-search-server
+
+    ports:
+      - "${GRPC_PORT:-50051}:50051"
+      - "${METRICS_PORT:-2112}:2112"
+
+    depends_on:
+      nats:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+    volumes:
+      - ../config:/config:ro
+
+    init: true
+
+    stop_grace_period: 30s
+
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 512M
+        reservations:
+          cpus: "0.5"
+          memory: 128M
+
+    security_opt:
+      - no-new-privileges:true
+
+    networks:
+      - backend
+
+  nats:
+    image: nats:2.14.1-alpine
+
+    container_name: top-search-nats
+
+    restart: unless-stopped
+
+    command:
+      - "--name=top-search-nats"
+      - "--http_port=8222"
+      - "--js"
+      - "--sd=/data"
+
+    ports:
+      - "${NATS_CLIENT_PORT:-4222}:4222"
+      - "${NATS_MONITORING_PORT:-8222}:8222"
+
+    volumes:
+      - nats-data:/data
+
+    healthcheck:
+      test:
+        [ "CMD-SHELL", "wget -q -O - http://127.0.0.1:8222/healthz?js-enabled-only=true >/dev/null || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+    security_opt:
+      - no-new-privileges:true
+
+    networks:
+      - backend
+
+  redis:
+    image: redis:8-alpine
+
+    container_name: top-search-redis
+
+    restart: unless-stopped
+
+    command:
+      - redis-server
+      - --appendonly
+      - "yes"
+      - --save
+      - "60"
+      - "1000"
+      - --loglevel
+      - warning
+
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+
+    volumes:
+      - redis-data:/data
+
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "redis-cli",
+          "ping"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+    security_opt:
+      - no-new-privileges:true
+
+    networks:
+      - backend
+
+volumes:
+  nats-data:
+    driver: local
+
+  redis-data:
+    driver:
+      local
+
+networks:
+  backend:
+    driver: bridge

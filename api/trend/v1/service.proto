@@ -1,0 +1,49 @@
+syntax = "proto3";
+
+package trend.v1;
+
+option go_package = "github.com/shamhi/top-search/api/gen/trend/v1;trendv1";
+
+message GetTopRequest {
+  uint32 limit = 1;
+}
+
+message GetTopResponse {
+  repeated TrendingQuery entries = 1;
+}
+
+message TrendingQuery {
+  string query = 1;
+  uint64 score = 2;
+}
+
+message StreamTopRequest {
+  uint32 limit = 1;
+  uint32 update_interval_seconds = 2;
+}
+
+message AddStopWordRequest {
+  string word = 1;
+}
+
+message AddStopWordResponse {}
+
+message RemoveStopWordRequest {
+  string word = 1;
+}
+
+message RemoveStopWordResponse {}
+
+message ListStopWordsRequest {}
+
+message ListStopWordsResponse {
+  repeated string words = 1;
+}
+
+service TrendService {
+  rpc GetTop(GetTopRequest) returns (GetTopResponse);
+  rpc StreamTop(StreamTopRequest) returns (stream GetTopResponse);
+  rpc AddStopWord(AddStopWordRequest) returns (AddStopWordResponse);
+  rpc RemoveStopWord(RemoveStopWordRequest) returns (RemoveStopWordResponse);
+  rpc ListStopWords(ListStopWordsRequest) returns (ListStopWordsResponse);
+}
