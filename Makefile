@@ -30,7 +30,7 @@ BUF           := $(BIN_DIR)/buf
 DOCKER_COMPOSE_FILE := deploy/docker-compose.yml
 DOCKER_ENV_FILE     := config/.env
 
-SERVER_CONTAINER := top-search
+SERVER_CONTAINER := server
 NATS_CONTAINER   := nats
 REDIS_CONTAINER  := redis
 
@@ -221,8 +221,21 @@ produce: ## Запустить highload-продьюсер поисковых з
 	@go run ./cmd/producer
 
 .PHONY: produce-load
-produce-load: ## Highload: 10K rps, 4 workers, 30s
+produce-load: ## Highload: 10K rps, 8 workers, 30s
 	@go run ./cmd/producer -rate 10000 -workers 8 -duration 30s -batch 10
+
+.PHONY: monitor
+monitor: ## Запустить monitoring stack (prometheus + grafana + nats-exporter)
+	@printf '$(GREEN)$(BOLD)  📊$(RESET) Starting monitoring stack...\n'
+	docker compose --env-file $(DOCKER_ENV_FILE) -f $(DOCKER_COMPOSE_FILE) up -d prometheus grafana nats-exporter
+	@printf '$(GREEN)$(BOLD)  ✓$(RESET) Monitoring ready.\n'
+	@printf '  Grafana: http://localhost:3000\n'
+	@printf '  Prometheus: http://localhost:9090\n'
+	@printf '  NATS Exporter: http://localhost:7777/metrics\n'
+
+.PHONY: monitor-down
+monitor-down: ## Остановить monitoring stack
+	docker compose --env-file $(DOCKER_ENV_FILE) -f $(DOCKER_COMPOSE_FILE) stop prometheus grafana nats-exporter
 
 # ═══════════════════════════════════════════════════════════════
 #  📐 PROTO
